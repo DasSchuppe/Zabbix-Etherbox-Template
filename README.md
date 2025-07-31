@@ -2,7 +2,7 @@
 
 ## Description
 This Zabbix Template is for Monitoring Etherbox Device by MessPC (https://www.messpc.de/ethernetbox.php). 
-It provides basic Information about the device ans specific Information for every Senonsr
+It provides basic Information about the device ans specific Information for every Sensor
 
 Version / Zabbix version:
 -------------------------
