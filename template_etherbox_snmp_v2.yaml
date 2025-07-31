@@ -1,0 +1,166 @@
+zabbix_export:
+  version: '7.2'
+  template_groups:
+    - uuid: 9f85ad33242c49d3b23ce68a1070642b
+      name: Templates/Sensoren
+  templates:
+    - uuid: 9ea7022781bf41079e142c4fcacb67b8
+      template: 'Template Etherbox SNMP V2'
+      name: 'Template Etherbox SNMP V2'
+      description: |
+        Basic Template for monitoring Etherbox from Messpc with Port specific Discovery.
+        
+        Used Macros:
+        {$WARN_HUM} -> The Humanity that triggers a Warning Problem (default: 65)
+        {$MAX_HUM} -> The Humanity that triggers a High Problem (default: 75)
+        {$WARN_TEMP} -> The Temperature that triggers a Warning Problem (default: 24)
+        {$MAX_TEMP} -> The Temperature that triggers a High Problem (default: 28)
+      templates:
+        - name: 'ICMP Ping'
+      groups:
+        - name: Templates/Sensoren
+      items:
+        - uuid: bcdc72409672431084813059a6124901
+          name: 'Firmware Version'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.14848.2.1.1.1.0
+          key: etherbox.firmware
+          delay: 60m
+          value_type: TEXT
+          description: 'Firmware Version of the Device.'
+          tags:
+            - tag: Hardware
+              value: 'Firmware Version'
+        - uuid: b315f90f7041431288207dc6ad3228fd
+          name: IP-Address
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.14848.2.1.1.6.0
+          key: etherbox.ip
+          value_type: TEXT
+          description: 'The IP Address of this Device.'
+          tags:
+            - tag: Hardware
+              value: IP-Adress
+        - uuid: 1ad3bafeaa614dbe8cd0c3cefe9c7f5d
+          name: Location
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.14848.2.1.1.2.0
+          key: etherbox.location
+          delay: 10m
+          value_type: TEXT
+          description: 'The Location of this Device'
+          tags:
+            - tag: Hardware
+              value: Location
+      discovery_rules:
+        - uuid: a397c944a4a34bf0a0f69fb1d4a06a7d
+          name: 'Etherbox Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#SENSORTYPE},1.3.6.1.4.1.14848.2.1.2.1.3,{#SENSORVALUE},1.3.6.1.4.1.14848.2.1.2.1.5]'
+          key: etherbox.discovery
+          delay: 1h
+          item_prototypes:
+            - uuid: e7499f27e4f34643a31cd8ef3ccb1d2b
+              name: 'Sensor {#SNMPINDEX} - Type'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.14848.2.1.2.1.3.{#SNMPINDEX}'
+              key: 'etherbox.type.[{#SNMPINDEX}]'
+              delay: 10m
+              value_type: FLOAT
+              trends: '0'
+              description: |
+                The Type of the connected Sensor. Based on SNMPINDEX.
+                
+                Mapped to value Mapping "Sensor Type":
+                1 = Temperature
+                3 = Humidity
+                4 = Contact
+              valuemap:
+                name: 'Sensor Type'
+              tags:
+                - tag: Sensor
+                  value: Type
+            - uuid: e681760c60d34704ba9703471522d244
+              name: 'Sensor {#SNMPINDEX} - Value'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.14848.2.1.2.1.5.{#SNMPINDEX}'
+              key: 'etherbox.value.[{#SNMPINDEX}]'
+              value_type: FLOAT
+              trends: '0'
+              description: 'The Value of the connected Sensor. Based on SNMPINDEX.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: Sensor
+                  value: Value
+          trigger_prototypes:
+            - uuid: c1771b1b3e7c451cb6eba6ef69bc926e
+              expression: '(last(/Template Etherbox SNMP V2/etherbox.value.[{#SNMPINDEX}])>0) and (last(/Template Etherbox SNMP V2/etherbox.type.[{#SNMPINDEX}])=4)'
+              name: '{HOSTNAME} Contact Sensor different than 0 (Water detected)'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: DISASTER
+              description: 'Problem triggers when The Sensor Type matches 4 (Contact) and the Value of the Sensor is different then 0.'
+            - uuid: d332146d3451459c99b04a8f7b6fee5b
+              expression: '(last(/Template Etherbox SNMP V2/etherbox.type.[{#SNMPINDEX}])=3) and (last(/Template Etherbox SNMP V2/etherbox.value.[{#SNMPINDEX}])>{$MAX_HUM})'
+              name: '{HOSTNAME} Humidity > {$MAX_HUM}'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: HIGH
+              description: 'Problem triggers when The Sensor Type matches 3 (Humidity) and the Value of the Sensor is above Macro MAX_HUM.'
+            - uuid: 1ab985c858544849a6d47db40c56e3d5
+              expression: '(last(/Template Etherbox SNMP V2/etherbox.type.[{#SNMPINDEX}])=3) and (last(/Template Etherbox SNMP V2/etherbox.value.[{#SNMPINDEX}])>{$WARN_HUM})'
+              name: '{HOSTNAME} Humidity > {$WARN_HUM}'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'Problem triggers when The Sensor Type matches 3 (Humidity) and the Value of the Sensor is above Macro WARN_HUM.'
+            - uuid: 27760f93e53347a8a38c1223a72a70b5
+              expression: '(last(/Template Etherbox SNMP V2/etherbox.type.[{#SNMPINDEX}])=1) and (last(/Template Etherbox SNMP V2/etherbox.value.[{#SNMPINDEX}])>{$MAX_TEMP})'
+              name: '{HOSTNAME} Temperature > {$MAX_TEMP}'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: HIGH
+              description: 'Problem triggers when The Sensor Type matches 1 (Temperature) and the Value of the Sensor is above Macro MAX_TEMP.'
+            - uuid: 2daed2462f8747d4baa2edc5a1c60a84
+              expression: '(last(/Template Etherbox SNMP V2/etherbox.type.[{#SNMPINDEX}])=1) and (last(/Template Etherbox SNMP V2/etherbox.value.[{#SNMPINDEX}])>{$WARN_TEMP})'
+              name: '{HOSTNAME} Temperature > {$WARN_TEMP}'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'Problem triggers when The Sensor Type matches 1 (Temperature) and the Value of the Sensor is above Macro WARN_TEMP.'
+          graph_prototypes:
+            - uuid: 7c02f0e6c7b346e984d19320fdfd6f0c
+              name: 'Sensor Value'
+              graph_items:
+                - color: 199C0D
+                  calc_fnc: ALL
+                  item:
+                    host: 'Template Etherbox SNMP V2'
+                    key: 'etherbox.value.[{#SNMPINDEX}]'
+      macros:
+        - macro: '{$MAX_HUM}'
+          value: '75'
+        - macro: '{$MAX_TEMP}'
+          value: '28'
+        - macro: '{$WARN_HUM}'
+          value: '65'
+        - macro: '{$WARN_TEMP}'
+          value: '24'
+      valuemaps:
+        - uuid: 7e52112c6e3b4587bf783969321b3625
+          name: 'Sensor Type'
+          mappings:
+            - value: '1'
+              newvalue: Temperature
+            - value: '3'
+              newvalue: Humidity
+            - value: '4'
+              newvalue: 'Switch Contact'
+            - value: '0'
+              newvalue: 'not connected'
+            - value: '2'
+              newvalue: Brightness
+            - value: '5'
+              newvalue: 'Power Detector'
+            - value: '6'
+              newvalue: 'Smoke Sensor'
+            - value: '7'
+              newvalue: 'Short Contact'
