@@ -8,6 +8,7 @@ zabbix_export:
       template: 'Template Etherbox SNMP V2'
       name: 'Template Etherbox SNMP V2'
       description: |
+        Author: Kevin Schuppe (Github: DasSchuppe)
         Basic Template for monitoring Etherbox from Messpc with Port specific Discovery.
         
         Used Macros:
